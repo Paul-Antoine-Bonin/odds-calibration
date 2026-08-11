@@ -10,7 +10,7 @@ favourite-longshot bias precisely.
   several bookmakers plus results. Ideal source, no key needed.
 
 ## Steps
-- [ ] Set up repo, download script for the CSVs by league and season
+- [x] Set up repo, download script for the CSVs by league and season
 - [ ] Convert decimal odds into raw implied probabilities
 - [ ] Compute the overround (the sum exceeds 1), which is the bookmaker's margin
 - [ ] Normalise to get clean probabilities, then compare normalisation methods
@@ -28,3 +28,9 @@ a clear conclusion on the longshot bias.
 ## Traps
 - Comparing bookmakers on different samples distorts everything. Use only the matches
   both of them priced.
+- Encoding is not uniform. Of the 450 files downloaded, 11 are latin-1 rather than
+  utf-8 (older German, English and Scottish seasons) and several carry a utf-8 BOM.
+  The reader needs a fallback, otherwise those seasons drop out silently.
+- The odds columns move around between seasons. Older files carry bookmakers that no
+  longer exist (GB, LB, SB), recent ones add Max and Avg columns. Select columns by
+  name, never by position.

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "oddscal"
+version = "0.1.0"
+description = "Calibration of bookmaker odds on football-data.co.uk results"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.31",
+    "pandas>=2.0",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "jupyter>=1",
+]
+
+[project.scripts]
+oddscal-download = "oddscal.download:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

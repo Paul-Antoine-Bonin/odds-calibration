@@ -5,3 +5,10 @@ venv/
 .env
 .DS_Store
 .ipynb_checkpoints/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Third party data, refetchable with: python -m oddscal.download
+data/

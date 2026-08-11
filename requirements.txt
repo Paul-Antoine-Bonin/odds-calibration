@@ -1,0 +1,7 @@
+# Runtime and development dependencies.
+# Install with:  pip install -r requirements.txt && pip install -e .
+requests>=2.31
+pandas>=2.0
+matplotlib>=3.7
+pytest>=8
+jupyter>=1

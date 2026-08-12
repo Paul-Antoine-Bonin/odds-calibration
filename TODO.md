@@ -11,7 +11,7 @@ favourite-longshot bias precisely.
 
 ## Steps
 - [x] Set up repo, download script for the CSVs by league and season
-- [ ] Convert decimal odds into raw implied probabilities
+- [x] Convert decimal odds into raw implied probabilities
 - [ ] Compute the overround (the sum exceeds 1), which is the bookmaker's margin
 - [ ] Normalise to get clean probabilities, then compare normalisation methods
       (proportional against power)
@@ -34,3 +34,9 @@ a clear conclusion on the longshot bias.
 - The odds columns move around between seasons. Older files carry bookmakers that no
   longer exist (GB, LB, SB), recent ones add Max and Avg columns. Select columns by
   name, never by position.
+- Max and Avg are not bookmakers. They are the site's maximum and mean across books,
+  so their implied probabilities can sum to less than 1. `to_long_odds` tags them as
+  aggregates and drops them by default. Never let them into a calibration curve.
+- 20 quotes out of 1.49 million imply probabilities summing below 1, the lowest at
+  0.62. These are data entry errors, not arbitrage, and they would drag the measured
+  margin down. Filter them when computing the overround.

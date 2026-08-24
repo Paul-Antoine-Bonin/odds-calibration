@@ -7,9 +7,9 @@ hundred should happen. This repo checks that against twenty-five seasons of foot
 results, and measures where the margin sits.
 
 No calibration results yet. Data collection, the conversion to raw implied
-probabilities and the margin are all in place: across 1.47 million bookmaker quotes
-the median book keeps **6.94%** of turnover, and that figure has roughly halved
-since 2000.
+probabilities, the margin and the normalisation are all in place: across 1.47 million
+bookmaker quotes the median book keeps **6.94%** of turnover, and that figure has
+roughly halved since 2000.
 
 ## Setup
 
@@ -37,12 +37,15 @@ returns 404, which counts as missing rather than as a failure.
 from oddscal.load import load_matches
 from oddscal.probabilities import build_raw_probabilities
 from oddscal.overround import add_overround, summarise_overround
+from oddscal.normalise import normalise, compare_methods
 
 matches = load_matches()                    # one row per match
 quotes = build_raw_probabilities(matches)   # one row per (match, bookmaker)
 quotes = add_overround(quotes)              # booksum, overround, margin
+clean = normalise(quotes, "proportional")   # p_home, p_draw, p_away summing to 1
 
 summarise_overround(quotes, by=["bookmaker"])
+compare_methods(quotes)                     # both normalisations side by side
 ```
 
 `quotes` carries `odds_home/draw/away` and the reciprocals `p_raw_home/draw/away`.
@@ -164,6 +167,47 @@ between. Top flights are cheaper than the divisions below them, everywhere.
 2006, which sums to 0.62. They are typing errors in the archive rather than
 arbitrage. Dropping them is the right thing to do and it changes the headline margin
 by less than 0.0001 points, which is the answer this filter deserved.
+
+## Normalising: an assumption, not a cleanup
+
+Removing the margin is a choice about *where* the bookmaker put it, and the two
+standard choices disagree about the same quote.
+
+**Proportional** divides each raw probability by the booksum. Every outcome is shaded
+by the same factor, which is what makes the expected loss identical across the three
+and the margin the number worth quoting.
+
+**Power** raises each raw probability to a common exponent k solving `sum p^k = 1`.
+Since every raw probability is below 1 and they sum above it, k > 1, and a power above
+1 shrinks small numbers proportionally harder. So the power method takes more margin
+out of the longshot, encoding the belief that the favourite-longshot bias is real.
+
+Both are exact to floating point on the archive, maximum `|sum - 1|` of 4.4e-16.
+The exponent is solved per quote by bisection: median k is **1.0781**, the middle 80%
+spans 1.0315 to 1.1330, and k exceeds 1 on 100% of the 1,465,200 bookmaker quotes.
+
+### How far apart they are
+
+Mean gap, power minus proportional, by proportional probability:
+
+| Proportional p | Quotes | Mean proportional | Mean power | Relative gap |
+|---|---|---|---|---|
+| 0.00 to 0.10 | 80,945 | 0.0752 | 0.0595 | **-20.9%** |
+| 0.10 to 0.20 | 442,334 | 0.1598 | 0.1460 | -8.6% |
+| 0.20 to 0.35 | 2,375,367 | 0.2784 | 0.2735 | -1.8% |
+| 0.35 to 0.50 | 956,139 | 0.4178 | 0.4247 | +1.7% |
+| 0.50 to 0.70 | 453,046 | 0.5750 | 0.5956 | +3.6% |
+| 0.70 to 1.00 | 87,769 | 0.7647 | 0.7998 | +4.6% |
+
+The gap is monotone and it crosses zero around a third. On the longest shots the two
+methods differ by a fifth of the probability, which is far too large to treat the
+choice as a formality: the favourite-longshot test at step 7 will move with it, and
+any calibration figure has to name the method that produced it.
+
+Which one is better calibrated is not answered here. That needs the calibration curve
+and the Brier score, steps 5 and 6.
+
+Proportional runs in 0.45s on the full archive, power in 9.3s.
 
 ## Run the tests
 

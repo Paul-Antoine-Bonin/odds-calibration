@@ -13,7 +13,7 @@ favourite-longshot bias precisely.
 - [x] Set up repo, download script for the CSVs by league and season
 - [x] Convert decimal odds into raw implied probabilities
 - [x] Compute the overround (the sum exceeds 1), which is the bookmaker's margin
-- [ ] Normalise to get clean probabilities, then compare normalisation methods
+- [x] Normalise to get clean probabilities, then compare normalisation methods
       (proportional against power)
 - [ ] Split into probability buckets and plot the calibration curve
 - [ ] Compute the Brier score, overall and per bucket
@@ -40,6 +40,15 @@ a clear conclusion on the longshot bias.
 - 20 quotes out of 1.49 million imply probabilities summing below 1, the lowest at
   0.62. These are data entry errors, not arbitrage, and they would drag the measured
   margin down. Filter them when computing the overround.
+- Normalising is an assumption, not a cleanup. Proportional and power give different
+  probabilities for the same quote, and the gap is large where it matters: on the
+  archive the power method assigns 20.9% less probability to outcomes under 0.1, and
+  4.6% more to outcomes above 0.7. Any calibration result has to name the method it
+  used, and the favourite-longshot test in particular will move with it.
+- The power exponent has to be solved per quote, not assumed. Median k is 1.0781 across
+  the archive and the middle 80% spans 1.0315 to 1.1330. Bisection, not Newton: the
+  sum is monotone in k so a bracket always converges, and a guaranteed answer on 1.5
+  million rows beats a faster one that can diverge.
 - The sample trap is not hypothetical, it already bit once. Grouping every quote by
   phase says closing books are 2.9 points tighter than opening ones. Restricted to
   the pairs carrying both, the gap is 0.03 points. The first number is measuring

@@ -6,10 +6,12 @@ Odds imply a probability. If a bookmaker quotes 20% on a thousand matches, about
 hundred should happen. This repo checks that against twenty-five seasons of football
 results, and measures where the margin sits.
 
-No calibration results yet. Data collection, the conversion to raw implied
-probabilities, the margin and the normalisation are all in place: across 1.47 million
-bookmaker quotes the median book keeps **6.94%** of turnover, and that figure has
-roughly halved since 2000.
+Across 1.47 million bookmaker quotes the median book keeps **6.94%** of turnover,
+and that figure has roughly halved since 2000. The calibration curve is now drawn on
+4.40 million outcome observations: proportionally normalised, the quotes show the
+textbook favourite-longshot shape, outcomes priced near 0.08 occurring 0.060 of the
+time and outcomes priced near 0.72 occurring 0.767 of the time. The power
+normalisation removes most of that tilt, which is what it is built to do.
 
 ## Setup
 
@@ -46,6 +48,12 @@ clean = normalise(quotes, "proportional")   # p_home, p_draw, p_away summing to 
 
 summarise_overround(quotes, by=["bookmaker"])
 compare_methods(quotes)                     # both normalisations side by side
+
+from oddscal.calibration import to_observations, bucket_calibration, plot_calibration
+
+obs = to_observations(quotes, method="proportional")  # 3 rows per quote
+table = bucket_calibration(obs)                       # one row per bucket
+plot_calibration({"proportional": table}, path="figures/calibration.png")
 ```
 
 `quotes` carries `odds_home/draw/away` and the reciprocals `p_raw_home/draw/away`.
@@ -204,10 +212,70 @@ methods differ by a fifth of the probability, which is far too large to treat th
 choice as a formality: the favourite-longshot test at step 7 will move with it, and
 any calibration figure has to name the method that produced it.
 
-Which one is better calibrated is not answered here. That needs the calibration curve
-and the Brier score, steps 5 and 6.
+Which one is better calibrated is not settled by the shape of the gap alone. The
+curve below says where each one sits; the Brier score, step 6, is what scores them.
 
 Proportional runs in 0.45s on the full archive, power in 9.3s.
+
+## The calibration curve
+
+Every quote is three probabilities and exactly one of them happened, so a quote
+becomes three observations. Grouping them by probability and counting how often the
+outcome occurred gives 4,395,600 observations from 1,465,200 bookmaker quotes, of
+which 1,465,200 occurred, one per quote by construction.
+
+![Calibration curve](figures/calibration.png)
+
+Proportionally normalised, in equal-width buckets:
+
+| Quoted p | Observations | Mean quoted | Observed | 95% Wilson | Gap |
+|---|---|---|---|---|---|
+| 0.02 to 0.05 | 8,969 | 0.0411 | 0.0233 | 0.0204 to 0.0266 | **-0.0178** |
+| 0.05 to 0.10 | 71,907 | 0.0796 | 0.0595 | 0.0578 to 0.0613 | **-0.0200** |
+| 0.10 to 0.15 | 158,890 | 0.1277 | 0.1121 | 0.1105 to 0.1136 | -0.0156 |
+| 0.15 to 0.20 | 283,444 | 0.1778 | 0.1653 | 0.1639 to 0.1666 | -0.0126 |
+| 0.20 to 0.25 | 483,229 | 0.2278 | 0.2143 | 0.2131 to 0.2154 | -0.0135 |
+| 0.25 to 0.30 | 1,270,664 | 0.2770 | 0.2740 | 0.2733 to 0.2748 | -0.0029 |
+| 0.30 to 0.35 | 621,474 | 0.3207 | 0.3189 | 0.3178 to 0.3201 | -0.0018 |
+| 0.35 to 0.40 | 381,818 | 0.3749 | 0.3762 | 0.3747 to 0.3778 | +0.0014 |
+| 0.40 to 0.45 | 321,670 | 0.4241 | 0.4332 | 0.4315 to 0.4349 | +0.0091 |
+| 0.45 to 0.50 | 252,651 | 0.4745 | 0.4813 | 0.4794 to 0.4833 | +0.0068 |
+| 0.50 to 0.55 | 185,314 | 0.5243 | 0.5401 | 0.5378 to 0.5423 | +0.0158 |
+| 0.55 to 0.60 | 130,242 | 0.5736 | 0.5940 | 0.5913 to 0.5966 | +0.0204 |
+| 0.60 to 0.65 | 78,245 | 0.6234 | 0.6481 | 0.6447 to 0.6514 | +0.0247 |
+| 0.65 to 0.70 | 59,245 | 0.6731 | 0.7116 | 0.7079 to 0.7152 | +0.0385 |
+| 0.70 to 0.75 | 40,076 | 0.7238 | 0.7672 | 0.7631 to 0.7713 | +0.0434 |
+| 0.75 to 0.80 | 27,992 | 0.7733 | 0.8240 | 0.8195 to 0.8284 | **+0.0508** |
+| 0.80 to 0.85 | 14,281 | 0.8211 | 0.8677 | 0.8620 to 0.8731 | +0.0466 |
+| 0.85 to 0.90 | 4,855 | 0.8698 | 0.9123 | 0.9040 to 0.9199 | +0.0424 |
+| 0.90 to 0.95 | 565 | 0.9126 | 0.9593 | 0.9397 to 0.9727 | +0.0467 |
+
+The first bucket, below 0.02, holds 69 observations and none of them occurred. It is
+in the figure and it means nothing on its own.
+
+The gap is negative on every bucket below 0.35 and positive on every bucket above it,
+crossing over around a third. Read as a statement about prices rather than about
+probabilities: outcomes the book prices long happen less often than the price says,
+and outcomes it prices short happen more often. That is the favourite-longshot bias,
+and it is what step 7 has to test properly rather than read off a curve.
+
+Two numbers over the whole table: the size-weighted mean absolute gap is **0.0087**,
+and 18 of the 20 buckets have a Wilson interval excluding their own mean quoted
+probability. The second number deserves less weight than it looks like it carries.
+At this sample size almost any systematic gap becomes significant, and the three
+observations from one quote are not independent, so the intervals are narrower than
+they should be.
+
+Under the power normalisation the same table is much flatter: weighted mean absolute
+gap **0.0026** against 0.0087, and the extreme buckets that were off by 4 to 5 points
+come back to 1 or 2. The tilt has not been measured away, it has been assumed away.
+Power puts extra margin on the longshot by construction, so a flatter curve is the
+method doing exactly what it was defined to do, not evidence that it is right. Which
+of the two describes the world is a scoring question, and the answer waits for step 6.
+
+Equal-count buckets tell the same story with the thin ends filled in: 20 buckets of
+about 219,800 observations each, weighted mean absolute gap 0.0090 proportional
+against 0.0031 power. `bucket_calibration(obs, bins=20)` produces them.
 
 ## Run the tests
 

@@ -15,7 +15,7 @@ favourite-longshot bias precisely.
 - [x] Compute the overround (the sum exceeds 1), which is the bookmaker's margin
 - [x] Normalise to get clean probabilities, then compare normalisation methods
       (proportional against power)
-- [ ] Split into probability buckets and plot the calibration curve
+- [x] Split into probability buckets and plot the calibration curve
 - [ ] Compute the Brier score, overall and per bucket
 - [ ] Test the favourite-longshot bias: are longshots systematically overpriced?
 - [ ] Compare bookmakers against each other, and by league
@@ -56,3 +56,18 @@ a clear conclusion on the longshot bias.
 - Overround and margin are different numbers and get used interchangeably in the
   literature. B - 1 against (B - 1) / B, roughly 8.0% against 6.9% here. Quote the
   margin: it is the expected loss per unit staked.
+- One quote is three observations, not one. Stacking home, draw and away is what
+  makes a bucket mean "every outcome priced near p". They are not independent, so
+  the Wilson interval on a bucket is optimistic by roughly what that dependence
+  costs. On 4.4 million observations that hardly matters for the shape of the
+  curve, but it does mean "18 of 20 buckets off the diagonal" is a weaker
+  statement than it looks.
+- Wilson, not the normal approximation, and not errorbar. The interval is not
+  centred on the observed frequency, so at the extreme buckets one arm points the
+  wrong way and matplotlib's errorbar refuses negative values outright. Drawing
+  the interval as it actually sits is the fix; clipping it would have been a lie
+  at exactly the buckets the longshot claim depends on.
+- Equal-width and equal-count buckets answer different questions. The archive
+  piles up between 0.15 and 0.6, so an equal-width bucket above 0.9 holds 565
+  observations against 1.27 million in the modal one. Never show the curve
+  without the counts underneath.
